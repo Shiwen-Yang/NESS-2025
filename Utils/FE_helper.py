@@ -101,8 +101,16 @@ def extract_datetime_features(df, date_col='claim_date', include_holidays=True):
     df[f'{date_col}.is_weekend'] = (df[date_col].dt.dayofweek >= 5).astype(int)
 
     if include_holidays:
-        us_holidays = holidays.US()
-        df[f'{date_col}.is_holiday'] = (df[date_col].isin(us_holidays)).astype(int)
+        us_holidays = holidays.US(years=[2015, 2016])
+        holiday_dates = pd.to_datetime(list(us_holidays.keys()))
+
+        # Expand to ±2 days around each holiday
+        expanded_dates = set()
+        for date in holiday_dates:
+            for offset in range(-2, 3):  # -2, -1, 0, +1, +2
+                expanded_dates.add(date + pd.Timedelta(days=offset))
+
+        df[f'{date_col}.near_holiday'] = df[date_col].isin(expanded_dates).astype(int)
     
     df = df.drop(columns = ['claim_date', 'claim_day_of_week'])
 
