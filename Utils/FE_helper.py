@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
 import seaborn as sns
+import ast
 import holidays
 from uszipcode import SearchEngine
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
 
 def impute_missing_values(df, ignore_columns=None):
     """
@@ -238,7 +241,7 @@ def add_interaction_features(df):
 
 
 
-def preprocessing(df, age_cap_value=82, exclude_vars='witness_present_ind', include_holidays=True):
+def add_features(df, age_cap_value=82, exclude_vars='witness_present_ind', include_holidays=True):
     """
     Runs the full preprocessing pipeline on the input dataframe.
 
@@ -264,3 +267,88 @@ def preprocessing(df, age_cap_value=82, exclude_vars='witness_present_ind', incl
     df_processed = add_interaction_features(df_processed)
     
     return df_processed
+
+def drop_ignored_columns(df, ignore_var):
+    """
+    Returns a DataFrame with columns from ignore_var removed (if they exist).
+    
+    Parameters:
+        df (pd.DataFrame): The input DataFrame.
+        ignore_var (list): List of column names to ignore/remove.
+    
+    Returns:
+        pd.DataFrame: DataFrame with ignored columns dropped.
+    """
+    # Keep only columns NOT in ignore_var
+    filtered_cols = [col for col in df.columns if col not in ignore_var]
+    return df[filtered_cols]
+
+
+def preprocess_train_test(train_df, test_df, ignore_var=['claim_number', 'fraud'], onehot_prefix='OH_'):
+    """
+    Preprocess train and test DataFrames:
+    - Scales numeric columns using MinMaxScaler.
+    - One-hot encodes categorical columns.
+    - Returns transformed DataFrames with aligned columns.
+    
+    Parameters:
+        train_df (pd.DataFrame): Training DataFrame.
+        test_df (pd.DataFrame): Testing DataFrame.
+        ignore_var (list): Columns to exclude from processing.
+        onehot_prefix (str): Prefix for one-hot encoded feature names.
+    
+    Returns:
+        (pd.DataFrame, pd.DataFrame): Processed train and test DataFrames.
+    """
+    # Identify numeric and categorical columns
+    numeric_cols = train_df.select_dtypes(include=np.number).columns.difference(ignore_var)
+    categorical_cols = train_df.select_dtypes(include='object').columns.difference(ignore_var)
+
+    # Build preprocessor
+    preprocessor = ColumnTransformer([
+        ('num', MinMaxScaler(), numeric_cols),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_cols)
+    ])
+
+    # Fit and transform on train
+    X_train_processed = preprocessor.fit_transform(train_df)
+    # Transform on test
+    X_test_processed = preprocessor.transform(test_df)
+
+    # Get final feature names
+    final_feature_names = (
+        list(numeric_cols)
+        + [f"{onehot_prefix}{name}" for name in preprocessor.named_transformers_['cat'].get_feature_names_out(categorical_cols)]
+    )
+
+    # Convert to DataFrames
+    X_train_df = pd.DataFrame(X_train_processed, columns=final_feature_names, index=train_df.index)
+    X_test_df = pd.DataFrame(X_test_processed, columns=final_feature_names, index=test_df.index)
+
+    return X_train_df, X_test_df
+
+
+def get_cumulative_dropped_features(prune_df, row_limit):
+    """
+    Returns a list of unique features to be removed up to the given row_limit.
+
+    Parameters:
+    - prune_df (pd.DataFrame): DataFrame from the feature pruning log CSV.
+    - row_limit (int): Number of rows (rounds) to include, 1-based (e.g., row_limit=3 means rounds 1-3).
+
+    Returns:
+    - List[str]: Unique list of features dropped up to the specified round.
+    """
+    # Slice the DataFrame up to the specified row (note: iloc is 0-based)
+    subset_df = prune_df.iloc[:row_limit]
+    
+    # Collect and parse all dropped feature lists
+    all_dropped = []
+    for dropped_str in subset_df['features_dropped_this_round']:
+        dropped_list = ast.literal_eval(dropped_str)  # safely convert string to list
+        all_dropped.extend(dropped_list)
+    
+    # Deduplicate
+    unique_dropped = list(set(all_dropped))
+    
+    return unique_dropped
