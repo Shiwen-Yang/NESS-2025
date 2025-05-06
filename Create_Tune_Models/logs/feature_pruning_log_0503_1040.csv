@@ -1,2 +1,0 @@
-round,f1_this_round,best_f1_overall,num_features_remaining,features_dropped_this_round
-1,0.37723417862107567,0.37723417862107567,71,"['claim_date.is_holiday', 'OH_age_group_A', 'OH_age_group_E', 'OH_state_nan']"
