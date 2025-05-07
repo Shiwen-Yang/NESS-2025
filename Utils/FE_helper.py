@@ -195,9 +195,9 @@ def liab_prct_group(df, col = 'liab_prct', new_col_name = 'liab_prct_group'):
     df[new_col_name] = pd.cut(df[col], bins=bins, labels=labels, right=False)
     return(df)
 
-def zero_payout(df, col = 'claim_est_payout', new_col_name = 'zero_payout'):
-    df[new_col_name] = [1 if x > 0 else 0 for x in df[col]]
-    return(df)
+# def zero_payout(df, col = 'claim_est_payout', new_col_name = 'zero_payout'):
+#     df[new_col_name] = [1 if x > 0 else 0 for x in df[col]]
+#     return(df)
 
 
 def add_interaction_features(df):
@@ -271,7 +271,7 @@ def add_features(df, age_cap_value=82, exclude_vars='witness_present_ind', inclu
     df_processed = extract_datetime_features(df_processed, include_holidays=include_holidays)
     df_processed = process_zipcode_features(df_processed)
     df_processed = price_categories(df_processed)
-    df_processed = zero_payout(df_processed)
+    # df_processed = zero_payout(df_processed)
     df_processed = add_interaction_features(df_processed)
     
     return df_processed
