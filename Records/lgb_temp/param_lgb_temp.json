@@ -1,0 +1,12 @@
+{
+    "difference_min": 0.03883095979920089,
+    "info_min": 0.030021774296968697,
+    "num_leaves": 78,
+    "feature_fraction": 0.31956799588823553,
+    "bagging_fraction": 0.5999802985351506,
+    "bagging_freq": 6,
+    "learning_rate": 0.026243211092829115,
+    "lambda_l1": 12.402968880274976,
+    "lambda_l2": 24.460427585762545,
+    "mean_threshold": 0.5048979591836735
+}
