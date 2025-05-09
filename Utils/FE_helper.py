@@ -4,7 +4,7 @@ import seaborn as sns
 import ast
 import holidays
 from uszipcode import SearchEngine
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 
 def impute_missing_values(df, ignore_columns=None):
@@ -360,3 +360,84 @@ def get_cumulative_dropped_features(prune_df, row_limit):
     unique_dropped = list(set(all_dropped))
     
     return unique_dropped
+
+
+
+def add_presence_columns(train_df, presence_info_df, level, suffix='_count'):
+    """
+    For each combo in presence_info_df, create a presence feature on train_df.
+
+    Parameters:
+    - train_df (pd.DataFrame): The training dataset.
+    - presence_info_df (pd.DataFrame): DataFrame containing 'feature' column
+      with names like 'feature1__feature2__feature3_present'.
+
+    Returns:
+    - pd.DataFrame: train_df with new presence columns added.
+    """
+    df_out = train_df.copy()
+    new_columns = {}  # Store new columns here
+    
+    for i, combo_str in enumerate(presence_info_df['feature'], 1):
+        # Extract base combo name (strip trailing '_present')
+        if combo_str.endswith(suffix):
+            combo_base = combo_str[:-len(suffix)]
+        else:
+            combo_base = combo_str
+
+        combo_features = combo_base.split('__')
+        new_col_name = combo_base + suffix  # keep consistent
+
+        # Build tuple of feature values per row
+        combo_tuples = train_df[combo_features].apply(tuple, axis=1)
+
+        # Count how many times each tuple appears
+        counts = combo_tuples.map(combo_tuples.value_counts())
+
+        # Save the new column to dict (don't insert yet)
+        new_columns[new_col_name] = (counts > level).astype(int)
+    
+    # Concat all new columns at once
+    df_out = pd.concat([df_out, pd.DataFrame(new_columns, index=train_df.index)], axis=1)
+
+    return df_out
+
+
+
+def fit_regular_transformer(train_df, presence_suffix='_count'):
+    # Identify regular columns
+    regular_cols = [col for col in train_df.columns if not col.endswith(presence_suffix)]
+    
+    # Split regular into categorical and numerical
+    categorical_cols = train_df[regular_cols].select_dtypes(include=['object', 'category']).columns.tolist()
+    numerical_cols = train_df[regular_cols].select_dtypes(include=['number']).columns.tolist()
+    if 'claim_number' in numerical_cols:
+        numerical_cols.remove('claim_number')
+    
+    # Initialize transformers
+    onehot = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    scaler = StandardScaler()
+    
+    # Fit transformers
+    onehot.fit(train_df[categorical_cols])
+    scaler.fit(train_df[numerical_cols])
+    
+    # print(f"Fitted on {len(categorical_cols)} categorical and {len(numerical_cols)} numerical columns.")
+    
+    return onehot, scaler, categorical_cols, numerical_cols
+
+def transform_regular_set(df, onehot, scaler, categorical_cols, numerical_cols):
+    # Transform categorical
+    cat_transformed = onehot.transform(df[categorical_cols])
+    cat_df = pd.DataFrame(cat_transformed, columns=onehot.get_feature_names_out(categorical_cols), index=df.index)
+    
+    # Transform numerical
+    num_transformed = scaler.transform(df[numerical_cols])
+    num_df = pd.DataFrame(num_transformed, columns=numerical_cols, index=df.index)
+    
+    # Combine transformed parts
+    transformed_df = pd.concat([num_df, cat_df], axis=1)
+    
+    # print(f"Transformed set shape: {transformed_df.shape}")
+    return transformed_df
+
