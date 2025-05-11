@@ -363,7 +363,7 @@ def get_cumulative_dropped_features(prune_df, row_limit):
 
 
 
-def add_presence_columns(train_df, presence_info_df, level, suffix='_count'):
+def add_presence_columns(train_df, presence_info_df, level, suffix='_count', new_features_only = False):
     """
     For each combo in presence_info_df, create a presence feature on train_df.
 
@@ -398,7 +398,10 @@ def add_presence_columns(train_df, presence_info_df, level, suffix='_count'):
         new_columns[new_col_name] = (counts > level).astype(int)
     
     # Concat all new columns at once
-    df_out = pd.concat([df_out, pd.DataFrame(new_columns, index=train_df.index)], axis=1)
+    if new_features_only:
+        df_out = pd.DataFrame(new_columns, index=train_df.index)
+    else:
+        df_out = pd.concat([df_out, pd.DataFrame(new_columns, index=train_df.index)], axis=1)
 
     return df_out
 
