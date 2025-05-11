@@ -309,11 +309,17 @@ def save_settings(train_df, test_df, test_id, test_pred, best_params, threshold_
         'claim_number': test_id,
         'fraud': final_preds
     })
+    
+    pred_prob = pd.DataFrame({
+        'claim_number': test_id,
+        'fraud_probs': test_pred
+    }) 
 
     train_csv_path = os.path.join(output_dir, 'train_2025.csv')
     test_csv_path = os.path.join(output_dir, 'test_2025.csv')
     param_json_path = os.path.join(output_dir, f'param_{model_name}_temp.json')
     submission_csv_path = os.path.join(output_dir, f'submission_{model_name}.csv')
+    pred_prob_csv_path = os.path.join(output_dir, f'pred_prob_{model_name}.csv')
 
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
@@ -322,6 +328,7 @@ def save_settings(train_df, test_df, test_id, test_pred, best_params, threshold_
     train_df.to_csv(train_csv_path, index=False)
     test_df.to_csv(test_csv_path, index=False)
     submission.to_csv(submission_csv_path, index=False)
+    pred_prob.to_csv(pred_prob_csv_path, index=False)
     
 
     # Save best_params as JSON
