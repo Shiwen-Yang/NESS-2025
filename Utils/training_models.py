@@ -258,6 +258,7 @@ def run_cv_evaluation_single_model(X, y, params, train_model_fn, kfoldcv=5, drop
 
     results = []
     probs_test_list = []
+    model_list = []
 
     for train_idx, val_idx in skf.split(X, y):
         X_train = X.iloc[train_idx].drop(columns=drop, errors='ignore')
@@ -267,20 +268,27 @@ def run_cv_evaluation_single_model(X, y, params, train_model_fn, kfoldcv=5, drop
 
         _, model, stats = train_model_fn(X_train, y_train, X_val, y_val, params)
         results.append(stats)
+        model_list.append(model)
         
         if test_df is not None:
             probs_test = predict_fn(model, test_df)
             probs_test_list.append(probs_test)
+    
+    avg_probs_test = (
+        pd.DataFrame(probs_test_list).T.mean(axis=1)
+        if test_df is not None and probs_test_list else None
+    )
 
-    if test_df is not None:
-        avg_probs_test = pd.DataFrame(probs_test_list).T.mean(axis=1)
-        return pd.DataFrame(results), avg_probs_test
-    else:
-        return pd.DataFrame(results)
+    return pd.DataFrame(results), avg_probs_test, model_list
+    # if test_df is not None:
+    #     avg_probs_test = pd.DataFrame(probs_test_list).T.mean(axis=1)
+    #     return pd.DataFrame(results), avg_probs_test
+    # else:
+    #     return pd.DataFrame(results)
 
 def objective_single_model(trial, full_train_df, target, train_model_fn, params_trial_fn, kfoldcv=5, drop=[], seed = None):
     params = params_trial_fn(trial)
-    cv_df = run_cv_evaluation_single_model(full_train_df, target, params, train_model_fn, kfoldcv=kfoldcv, drop=drop, seed = seed)
+    cv_df, _, _ = run_cv_evaluation_single_model(full_train_df, target, params, train_model_fn, kfoldcv=kfoldcv, drop=drop, seed = seed)
     trial.set_user_attr('cv_results', cv_df)
     return cv_df['f1'].mean()
 
