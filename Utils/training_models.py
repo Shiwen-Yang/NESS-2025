@@ -4,6 +4,8 @@ import xgboost as xgb
 import lightgbm as lgb
 from catboost import CatBoostClassifier, Pool
 from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.impute import SimpleImputer
 import numpy as np
 import pandas as pd
 
@@ -244,6 +246,64 @@ def sample_hgb_hyperparams(trial):
     
 def predict_hgb(model, test_df):
     return model.predict_proba(test_df)[:, 1]
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+#############################################################################################################################
+
+
+def train_ridge(X_train, y_train, X_val, y_val, params, seed=None):
+    
+    cols = X_train.columns
+    imputer = SimpleImputer(strategy='mean')
+    
+    X_train = imputer.fit_transform(X_train)
+    X_val = imputer.transform(X_val)
+    X_train = pd.DataFrame(X_train, columns=cols)
+    X_val = pd.DataFrame(X_val, columns = cols)
+    
+    # Fixed parameters for logistic regression
+    lr_params_untrainable = {
+        'penalty': 'l2',
+        'solver': 'lbfgs',  # liblinear supports L1
+        'random_state': seed if seed is not None else 42,
+        'max_iter': 1000
+    }
+    params.update(lr_params_untrainable)
+
+    # Train model
+    model = LogisticRegression(**params)
+    model.fit(X_train, y_train)
+
+    # Predict probabilities and tune threshold
+    probs = model.predict_proba(X_val)[:, 1]
+    thresholds = np.linspace(0.1, 0.9, 200)
+    f1s = [f1_score(y_val, probs > t) for t in thresholds]
+
+    best_f1 = max(f1s)
+    best_threshold = thresholds[np.argmax(f1s)]
+
+    stats = {
+        'f1': best_f1,
+        'threshold': best_threshold,
+        'iteration': None  # Not applicable to logistic regression
+    }
+
+    return probs, model, stats
+
+def sample_ridge_hyperparams(trial):
+    return {
+        'C': trial.suggest_float('C', 0.3, 10.0, log=True)  # Inverse of regularization strength
+    }
+    
+def predict_ridge(model, test_df):
+    return model.predict_proba(test_df)[:, 1]
+
+
 #############################################################################################################################
 #############################################################################################################################
 #############################################################################################################################
