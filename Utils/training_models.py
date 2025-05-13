@@ -55,7 +55,7 @@ def train_xgb(X_train, y_train, X_val, y_val, params, seed = None):
 
 def sample_xgb_hyperparams(trial):
     return {
-        'max_depth': trial.suggest_int('max_depth', 1, 15),
+        'max_depth': trial.suggest_int('max_depth', 2, 15),
         'min_child_weight': trial.suggest_float('min_child_weight', 1e-3, 10.0, log=True),
         'subsample': trial.suggest_float('subsample', 0.3, 0.9),
         'colsample_bytree': trial.suggest_float('colsample_bytree', 0.3, 0.9),
@@ -302,7 +302,7 @@ def objective_single_model(trial, full_train_df, target, train_model_fn, params_
 #############################################################################################################################
 #############################################################################################################################
 def save_settings(train_df, test_df, test_id, test_pred, best_params, threshold_for_f1, output_dir, model_name):
-    
+    test_id = pd.Series(test_id).astype(int)
     final_preds = (test_pred > threshold_for_f1).astype(int)
 
     submission = pd.DataFrame({
