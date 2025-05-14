@@ -340,11 +340,7 @@ def run_cv_evaluation_single_model(X, y, params, train_model_fn, kfoldcv=5, drop
     )
 
     return pd.DataFrame(results), avg_probs_test, model_list
-    # if test_df is not None:
-    #     avg_probs_test = pd.DataFrame(probs_test_list).T.mean(axis=1)
-    #     return pd.DataFrame(results), avg_probs_test
-    # else:
-    #     return pd.DataFrame(results)
+
 
 def objective_single_model(trial, full_train_df, target, train_model_fn, params_trial_fn, kfoldcv=5, drop=[], seed = None):
     params = params_trial_fn(trial)
