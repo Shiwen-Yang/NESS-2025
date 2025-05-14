@@ -5,6 +5,7 @@ import lightgbm as lgb
 from catboost import CatBoostClassifier, Pool
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.impute import SimpleImputer
 import numpy as np
 import pandas as pd
@@ -64,6 +65,7 @@ def sample_xgb_hyperparams(trial):
         'eta': trial.suggest_float('learning_rate', 0.005, 0.1),
         'lambda': trial.suggest_float('lambda', 0.01, 25.0, log=True),
         'alpha': trial.suggest_float('alpha', 0.01, 20.0, log=True),
+        'scale_pos_weight': trial.suggest_float('scale_pos_weight', 1, 1)
     }
     
 def predict_xgb(model, test_df):
@@ -132,6 +134,7 @@ def sample_lgb_hyperparams(trial):
         'learning_rate': trial.suggest_float('learning_rate', 0.005, 0.1),
         'lambda_l1': trial.suggest_float('lambda_l1', 1e-3, 20.0, log=True),
         'lambda_l2': trial.suggest_float('lambda_l2', 1e-3, 25.0, log=True),
+        'scale_pos_weight': trial.suggest_float('scale_pos_weight', 1, 1)
     }
     
 def predict_lgb(model, test_df):
@@ -146,6 +149,7 @@ def predict_lgb(model, test_df):
 #############################################################################################################################
 #############################################################################################################################
 def train_cat(X_train, y_train, X_val, y_val, params, seed=None):
+    class_ratio = len(y_train[y_train == 0]) / len(y_train[y_train == 1])
     # Set or override fixed parameters
     cat_params_untrainable = {
         'iterations': 2000,
@@ -153,8 +157,11 @@ def train_cat(X_train, y_train, X_val, y_val, params, seed=None):
         'eval_metric': 'Logloss',
         'verbose': False,
         'random_seed': seed if seed is not None else 42,
+        'class_weights': [1.0, class_ratio],  # Adjusts for fraud imbalance, can be trained, but we choose not to
         # 'task_type': 'GPU'
     }
+    
+    
 
     params.update(cat_params_untrainable)
 
@@ -184,11 +191,14 @@ def train_cat(X_train, y_train, X_val, y_val, params, seed=None):
     return probs, model, stats
 
 def sample_cat_hyperparams(trial):
+    # Compute class weights for imbalance handling
+    
+    
     return {
         'learning_rate': trial.suggest_float('learning_rate', 0.005, 0.1),
         'depth': trial.suggest_int('depth', 3, 10),
         'l2_leaf_reg': trial.suggest_float('l2_leaf_reg', 1e-3, 25.0, log=True),
-        'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.3, 1.0),
+        'colsample_bylevel': trial.suggest_float('colsample_bylevel', 0.3, 1.0)
         # 'bootstrap_type': 'Bayesian',  # Optional: for advanced users
         # 'bagging_temperature': trial.suggest_float('bagging_temperature', 0, 1),  # Only if bootstrap_type is Bayesian
     }
@@ -213,10 +223,11 @@ def train_hgb(X_train, y_train, X_val, y_val, params, seed=None):
         'verbose': 0
     }
     params.update(hgbc_params_untrainable)
-
+    
+    sample_weight = compute_sample_weight(class_weight='balanced', y=y_train)
     # Instantiate and train the model
     model = HistGradientBoostingClassifier(**params)
-    model.fit(X_train, y_train)
+    model.fit(X_train, y_train, sample_weight=sample_weight)
 
     # Predict + threshold tuning
     probs = model.predict_proba(X_val)[:, 1]

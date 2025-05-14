@@ -1,0 +1,16 @@
+{
+    "max_depth": 10,
+    "min_child_weight": 0.018965603438630498,
+    "subsample": 0.6000937970271516,
+    "colsample_bytree": 0.6930565371630498,
+    "learning_rate": 0.09611056373161989,
+    "lambda": 5.13345088515268,
+    "alpha": 11.890045789235543,
+    "scale_pos_weight": 1.0,
+    "objective": "binary:logistic",
+    "eval_metric": "auc",
+    "tree_method": "gpu_hist",
+    "verbosity": 0,
+    "seed": null,
+    "mean_threshold": 0.18603015075376886
+}

@@ -1,0 +1,17 @@
+{
+    "num_leaves": 51,
+    "feature_fraction": 0.31491293255935665,
+    "bagging_fraction": 0.37265394663908635,
+    "bagging_freq": 6,
+    "learning_rate": 0.02937922569370265,
+    "lambda_l1": 0.010358315147664958,
+    "lambda_l2": 14.0487340446834,
+    "scale_pos_weight": 1.8041224988768572,
+    "objective": "binary",
+    "metric": "auc",
+    "boosting": "gbdt",
+    "device": "gpu",
+    "verbose": -1,
+    "seed": 42,
+    "mean_threshold": 0.25678391959799
+}

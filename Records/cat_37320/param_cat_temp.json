@@ -1,0 +1,16 @@
+{
+    "learning_rate": 0.09761596254232265,
+    "depth": 4,
+    "l2_leaf_reg": 1.451249703257409,
+    "colsample_bylevel": 0.35955823209582266,
+    "iterations": 2000,
+    "loss_function": "Logloss",
+    "eval_metric": "Logloss",
+    "verbose": false,
+    "random_seed": 42,
+    "class_weights": [
+        1.0,
+        5.321626617375231
+    ],
+    "mean_threshold": 0.543819095477387
+}
