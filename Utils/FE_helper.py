@@ -133,7 +133,7 @@ def process_zipcode_features(df, zip_col='zip_code', plot=False):
     search_zip = SearchEngine()
     unique_zip = df[zip_col].unique()
 
-    zip_code_basic_features = ['zipcode', 'zipcode_type', 'state', 'population']
+    zip_code_basic_features = ['zipcode', 'zipcode_type', 'state', 'population', 'lat', 'lng']
     zip_code_lite = []
 
     for zip_code in unique_zip:

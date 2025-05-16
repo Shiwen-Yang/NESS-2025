@@ -160,8 +160,6 @@ def train_cat(X_train, y_train, X_val, y_val, params, seed=None):
         'class_weights': [1.0, class_ratio],  # Adjusts for fraud imbalance, can be trained, but we choose not to
         # 'task_type': 'GPU'
     }
-    
-    
 
     params.update(cat_params_untrainable)
 
